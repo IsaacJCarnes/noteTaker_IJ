@@ -26,7 +26,7 @@ const readFromFile = (destination) =>
     if (err) {
       console.error("Reading " + err);
     } else {
-      return JSON.parse(data);
+      return JSON.stringify(data);
     }
   });
 
@@ -38,10 +38,10 @@ const writeToFile = (destination, content) =>
 const readAndAppend = (destination, content) => {
   fs.readFile(destination, 'utf8', (err, data) => {
     if (err) {
-      console.error("Writing " + err);
+      console.error(err);
     } else {
       const parsedData = JSON.parse(data);
-      parsedData.push(content);
+      parsedData.push(content.req.body);
       writeToFile(destination, parsedData);
     }
   });
@@ -51,13 +51,14 @@ const readAndAppend = (destination, content) => {
 /*Functions in index.js*/
 //GET Route for notes data
 app.get('/api/notes', (req, res) => {
-  res.send(readFromFile(".\\db\\db.json"));
+  let notesFile = readFromFile(".\\db\\db.json");
+  console.log("no: "+ notesFile);
+  res.send(notesFile);
 });
 
 // POST Route for notes data
 app.post('/api/notes', (req, res) => {
   readAndAppend('.\\db\\db.json', res);
-  res.json(`${req.method} request received to post to notes`);
 });
 
 app.delete('/api/notes', (req, res) => {
