@@ -1,3 +1,4 @@
+const { json } = require('express');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -7,6 +8,7 @@ const PORT = process.env.port || 3001;
 const app = express();
 
 app.use(express.static("public"));
+app.use(express.json());
 
 // GET Route for homepage
 app.get('/', (req, res) =>
@@ -15,19 +17,46 @@ app.get('/', (req, res) =>
 
 // GET Route for notes page
 app.get('/notes', (req, res) => {
-  res.status(200).json(`${req.method} request received to get notes page`);
   res.sendFile(path.join(__dirname, '/public/notes.html'));
 });
 
+/*FS Functions*/
+const readFromFile = (destination) => 
+  fs.readFile(destination, 'utf8', (err, data) => {
+    if (err) {
+      console.error("Reading " + err);
+    } else {
+      return JSON.parse(data);
+    }
+  });
+
+const writeToFile = (destination, content) =>
+  fs.writeFile(destination, JSON.stringify(content, null, 4), (err) =>
+  err ? console.error(err) : console.info(`\nData written to ${destination}`)
+  );
+
+const readAndAppend = (destination, content) => {
+  fs.readFile(destination, 'utf8', (err, data) => {
+    if (err) {
+      console.error("Writing " + err);
+    } else {
+      const parsedData = JSON.parse(data);
+      parsedData.push(content);
+      writeToFile(destination, parsedData);
+    }
+  });
+};
+
+
 /*Functions in index.js*/
 //GET Route for notes data
-app.get('/notes', (req, res) => {
-  res.status(200).json(`${req.method} request received to get notes`);
-  res.send(JSON.parse(fs.readFile(".\db\db.json")));
+app.get('/api/notes', (req, res) => {
+  res.send(readFromFile(".\\db\\db.json"));
 });
 
 // POST Route for notes data
 app.post('/api/notes', (req, res) => {
+  readAndAppend('.\\db\\db.json', res);
   res.json(`${req.method} request received to post to notes`);
 });
 
