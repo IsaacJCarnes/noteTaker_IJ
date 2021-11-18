@@ -1,4 +1,3 @@
-const { json } = require('express');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -23,17 +22,7 @@ app.get('/notes', (req, res) => {
 });
 
 /*FS Functions*/
-const readFromFile = (destination) => 
-  fs.readFile(destination, 'utf8', (err, data) => {
-    if (err) {
-      console.error(err);
-    } else {
-
-      return JSON.stringify(data);
-    }
-  });
-
-const writeToFile = (destination, content) =>
+const writeToFile = (destination, content) => //Turns parsed data into string before file write
   fs.writeFile(destination, JSON.stringify(content, null, 4), (err) =>
   err ? console.error(err) : console.info(`\nData written to ${destination}`)
   );
@@ -43,15 +32,14 @@ const readAndAppend = (destination, content) => {
     if (err) {
       console.error(err);
     } else {
-      lastIndex++;
-      console.log(lastIndex);
+      lastIndex++; //Increments id prefix
       let parsedData = JSON.parse(data);
-      let dataId = lastIndex + "+" + Math.floor(Math.random() * 999);
-      let newData = {
+      let dataId = lastIndex + "+" + Math.floor(Math.random() * 999); //Full id
+      let newData = { //Start of object
         id: dataId,
       };
-      Object.assign(newData, content.req.body);
-      parsedData.push(newData);
+      Object.assign(newData, content.req.body); //Push req data into new object
+      parsedData.push(newData); //Add object to end of parsed file
       writeToFile(destination, parsedData);
     }
   });
@@ -75,18 +63,42 @@ app.post('/api/notes', (req, res) => {
   res.json(`${req.method} request received to post to notes`);
 });
 
+// DELETE Route for notes data
 app.delete('/api/notes/:id', (req, res) => {
-  console.log(req.params.id);
-  res.json(`${req.method} request received to delete from notes`);
+  fs.readFile(".\\db\\db.json", 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+    } else {
+      let parsedData = JSON.parse(data);
+      for(i = 0; i < parsedData.length; i++){
+        if(parsedData[i].id === req.params.id){ //Makes sure id's match
+          parsedData.splice(i, 1);
+          writeToFile(".\\db\\db.json", parsedData);
+          if(parsedData.length > 0){
+            lastIndex = Number(parsedData[parsedData.length-1].id.split('+',1)[0]);
+          } else {
+            lastIndex = -1;
+          }
+          res.json(`${req.method} request received to delete from notes`);
+          return;
+        }
+      }
+    }
+  });
 });
 
+//When server is started lastIndex is initialized 
 app.listen(PORT, () => {
   fs.readFile(".\\db\\db.json", 'utf8', (err, data) => { //Read to get last note id
     if (err) {
       console.error(err);
     } else {
       let parsedData = JSON.parse(data);
-      lastIndex = Number(parsedData[parsedData.length-1].id.split('+',1)[0]);
+      if(parsedData.length > 0){
+        lastIndex = Number(parsedData[parsedData.length-1].id.split('+',1)[0]);
+      } else {
+        lastIndex = -1;
+      }
     }
   });
   console.log(`App listening at http://localhost:${PORT} 🚀`)
